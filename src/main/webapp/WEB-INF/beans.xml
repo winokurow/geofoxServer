@@ -15,7 +15,7 @@
 	<import resource="classpath:META-INF/spring/dao.xml"/>
 
 	<bean id="gameService" class="org.geohunt.service.game.rest.GameServiceJSON">
-<!-- 		<property name="customersDAO" ref="customersDAO"/> -->
+ 		<property name="gameDAO" ref="gameDAO"/>
 	</bean>
 
 	<bean id="preInvokeHandler" class="org.geohunt.service.rest.PreInvokeHandler" />

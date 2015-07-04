@@ -2,11 +2,13 @@ package org.geohunt.service.rest.responce;
 
 import javax.ws.rs.core.Response;
 
+import org.geohunt.service.game.rest.exceptions.CustomError;
+
 public class ResponseCreator {
-	public static Response error(int status, int errorCode, String version) {
-		Response.ResponseBuilder response = Response.status(status);
-		response.header("version", version);
-		response.header("errorcode", errorCode);
+	public static Response error(int status, CustomError error) {
+		Response.ResponseBuilder response = Response.status(500);
+		response.header("errorcode", error.getCode());
+		response.header("error", error.getDescription());
 		response.entity("none");
 		return response.build();
 	}

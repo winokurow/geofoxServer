@@ -1,5 +1,7 @@
 package org.geohunt.service.game.dao;
 
-public interface IGameDAO {
+import org.geohunt.service.game.entities.Game;
 
+public interface IGameDAO {
+	int createGame(Game game);
 }

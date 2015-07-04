@@ -28,6 +28,16 @@
 		<artifactId>cxf-rt-frontend-jaxrs</artifactId>
 		<version>2.2.3</version>
 	</dependency>
+	<dependency>
+		<groupId>com.mcxiaoke.volley</groupId>
+		<artifactId>library</artifactId>
+		<version>1.0.16</version>
+	</dependency>
+	<dependency>
+		<groupId>log4j</groupId>
+		<artifactId>log4j</artifactId>
+		<version>1.2.17</version>
+	</dependency>
 </dependencies>
 
 <build>
