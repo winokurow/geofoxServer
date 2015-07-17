@@ -1,8 +1,5 @@
 package org.geohunt.service.game.dao;
 
-import java.io.UnsupportedEncodingException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -10,8 +7,11 @@ import java.util.Map;
 
 import javax.sql.DataSource;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.geohunt.service.game.common.CommonUtils;
 import org.geohunt.service.game.entities.Game;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 
@@ -23,7 +23,7 @@ public class GameDAO implements IGameDAO {
 	private SimpleJdbcInsert insertMember;
 	private SimpleJdbcInsert insertPerson;
 
-	final static Logger logger = Logger.getLogger(classname.class);
+	final Logger logger = LogManager.getLogger(this.getClass());
 
 	public void setDataSource(DataSource dataSource) {
 		this.templGame = new JdbcTemplate(dataSource);
@@ -34,9 +34,22 @@ public class GameDAO implements IGameDAO {
 
 	public int createGame(Game game) {
 		if (game != null) {
-			if ((templGame.queryForInt("Select count(1) FROM games WHERE name = '" + game.getName() + "'")) == 0) {
+			int count = 0;
+			String sql;
+			try {
+				sql = "SELECT count(*) FROM games WHERE name = ?";
+				count = templGame.queryForObject(sql, new Object[] { game.getName() }, Integer.class);
+			} catch (EmptyResultDataAccessException e) {
+			}
+			if (count == 0) {
+				sql = "SELECT count(*) FROM users WHERE name = ?";
+				count = 0;
+				try {
+					count = templGame.queryForObject(sql, new Object[] { game.getUser() }, Integer.class);
+				} catch (EmptyResultDataAccessException e) {
+				}
 
-				if ((templGame.queryForInt("Select count(1) FROM users WHERE name = '" + game.getUser() + "'")) == 0) {
+				if (count == 0) {
 					Map<String, Object> parameters = new HashMap<String, Object>(1);
 					parameters.put("name", game.getUser());
 					insertPerson.execute(parameters);
@@ -47,22 +60,8 @@ public class GameDAO implements IGameDAO {
 				logger.debug(game.getTyp().trim());
 				parameters.put("typ", Integer.parseInt(game.getTyp().trim()));
 
-				MessageDigest msgDigest;
-				byte[] hash = null;
-				try {
-					msgDigest = MessageDigest.getInstance("SHA-256");
-					byte[] bytesOfMessage = game.getPassword().getBytes("UTF-8");
-					hash = msgDigest.digest(bytesOfMessage);
-					game.setPassword(new String(hash, "UTF-8"));
-				} catch (NoSuchAlgorithmException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (UnsupportedEncodingException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-
-				parameters.put("password", game.getPassword());
+				String password = CommonUtils.getHash(game.getPassword());
+				parameters.put("password", password);
 				parameters.put("status", 1);
 				Calendar cal = Calendar.getInstance();
 				cal.setTime(new Date());
@@ -70,9 +69,10 @@ public class GameDAO implements IGameDAO {
 				Date newDate = cal.getTime();
 				parameters.put("gameend", new java.sql.Date(newDate.getTime()));
 				insertGame.execute(parameters);
-
-				int personid = templGame.queryForInt("Select id FROM users WHERE name = '" + game.getUser() + "'");
-				int gameid = templGame.queryForInt("Select id FROM games WHERE name = '" + game.getName() + "'");
+				sql = "Select id FROM users WHERE name = ?";
+				int personid = templGame.queryForObject(sql, new Object[] { game.getUser() }, Integer.class);
+				sql = "Select id FROM games WHERE name = ?";
+				int gameid = templGame.queryForObject(sql, new Object[] { game.getName() }, Integer.class);
 
 				parameters = new HashMap<String, Object>(7);
 				parameters.put("sessionid", "test12345");

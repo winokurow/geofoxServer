@@ -2,7 +2,8 @@ package org.geohunt.service.game.rest;
 
 import javax.ws.rs.core.Response;
 
+import org.geohunt.service.game.entities.Game;
+
 public interface IGameService {
-	Response createCustomers(String typ, String gameName, String gamePassword,
-			String gameUser);
+	Response createGame(Game game);
 }

@@ -6,7 +6,6 @@ import java.util.Properties;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.PUT;
-import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
@@ -17,13 +16,14 @@ import org.geohunt.service.game.entities.Game;
 import org.geohunt.service.game.rest.exceptions.CustomError;
 import org.geohunt.service.rest.responce.ResponseCreator;
 
-public class GameServiceJSON {
+public class GameServiceJSON implements IGameService {
 
 	// for retrieving request headers from context
 	// an injectable interface that provides access to HTTP header information.
 	@Context
 	private HttpHeaders requestHeaders;
 
+	// link to our dao object
 	private IGameDAO gameDAO;
 
 	// for customersDAO bean property injection
@@ -42,7 +42,6 @@ public class GameServiceJSON {
 	// Create new game
 	@PUT
 	@Consumes(MediaType.APPLICATION_JSON)
-	@Produces(MediaType.TEXT_PLAIN)
 	public Response createGame(Game game) {
 		Properties prop = new Properties();
 		InputStream inputStream = getClass().getClassLoader().getResourceAsStream("main.properties");

@@ -10,7 +10,7 @@
 	<dependency>
 		<groupId>org.springframework</groupId>
 		<artifactId>spring-jdbc</artifactId>
-		<version>3.1.2.RELEASE</version>
+		<version>4.1.7.RELEASE</version>
 	</dependency>
 	<dependency>
 		<groupId>commons-dbcp</groupId>
@@ -20,24 +20,53 @@
 	<dependency>
          <groupId>mysql</groupId>
          <artifactId>mysql-connector-java</artifactId>
-         <version>5.1.21</version>
+         <version>5.1.6</version>
     </dependency>
+        <!-- rest dependencies -->
+<dependency>
+	<groupId>org.springframework</groupId>
+	<artifactId>spring-web</artifactId>
+	<version>4.1.7.RELEASE</version>
+</dependency>
+
         <!-- rest dependencies -->
     <dependency>
 		<groupId>org.apache.cxf</groupId>
 		<artifactId>cxf-rt-frontend-jaxrs</artifactId>
-		<version>2.2.3</version>
+		<version>3.1.1</version>
 	</dependency>
+<dependency>
+    <groupId>org.apache.cxf</groupId>
+    <artifactId>cxf-rt-rs-extension-providers</artifactId>
+    <version>3.1.1</version>
+</dependency>
+<dependency>
+    <groupId>org.apache.cxf</groupId>
+    <artifactId>cxf-rt-rs-extension-search</artifactId>
+    <version>3.1.1</version>
+</dependency>
+<dependency>
+    <groupId>com.sun.jersey</groupId>
+    <artifactId>jersey-json</artifactId>
+    <version>1.17.1</version>
+</dependency>
 	<dependency>
 		<groupId>com.mcxiaoke.volley</groupId>
 		<artifactId>library</artifactId>
 		<version>1.0.16</version>
 	</dependency>
-	<dependency>
-		<groupId>log4j</groupId>
-		<artifactId>log4j</artifactId>
-		<version>1.2.17</version>
-	</dependency>
+
+    <dependency>
+    <groupId>org.apache.logging.log4j</groupId>
+    <artifactId>log4j-api</artifactId>
+    <version>2.3</version>
+    </dependency>
+    <dependency>
+    <groupId>org.apache.logging.log4j</groupId>
+    <artifactId>log4j-core</artifactId>
+    <version>2.3</version>
+    </dependency>
+
 </dependencies>
 
 <build>

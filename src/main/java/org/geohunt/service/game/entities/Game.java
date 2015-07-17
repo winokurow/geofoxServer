@@ -3,7 +3,7 @@ package org.geohunt.service.game.entities;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "game")
-public class Game extends Entity {
+public class Game {
 	public String getTyp() {
 		return typ;
 	}
