@@ -4,6 +4,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.sql.DataSource;
 
@@ -32,9 +33,10 @@ public class GameDAO implements IGameDAO {
 		this.insertPerson = new SimpleJdbcInsert(dataSource).withTableName("users");
 	}
 
-	public int createGame(Game game) {
+	public UUID createGame(Game game) {
 		if (game != null) {
 			int count = 0;
+			UUID idOne = UUID.randomUUID();
 			String sql;
 			try {
 				sql = "SELECT count(*) FROM games WHERE name = ?";
@@ -83,14 +85,15 @@ public class GameDAO implements IGameDAO {
 				parameters.put("userid", personid);
 				parameters.put("gameid", gameid);
 				parameters.put("lastupdate", new java.sql.Date(new Date().getTime()));
+				parameters.put("sessionid", idOne);
 				insertMember.execute(parameters);
 
-				return 0;
+				return idOne;
 			} else {
-				return 1;
+				return null;
 			}
 		}
-		return 0;
+		return null;
 	}
 
 }

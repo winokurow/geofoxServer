@@ -3,6 +3,7 @@ package org.geohunt.service.game.rest;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
+import java.util.UUID;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.PUT;
@@ -55,11 +56,9 @@ public class GameServiceJSON implements IGameService {
 		if (!(getHeaderVersion().equals(prop.get("service.version")))) {
 			return ResponseCreator.error(5002, CustomError.OLD_VERSION_ERROR);
 		}
-		System.out.println("1");
-		int result = gameDAO.createGame(game);
-		if (result == 0) {
-			return ResponseCreator.success(getHeaderVersion(), String.format("{gameid:'2 Success: %s %s %s %s'}",
-					game.getTyp(), game.getName(), game.getPassword(), game.getUser()));
+		UUID uuid = gameDAO.createGame(game);
+		if (uuid != null) {
+			return ResponseCreator.success(getHeaderVersion(), String.format("{gameid:'%s'}", uuid));
 		} else {
 			return ResponseCreator.error(5003, CustomError.GAME_EXISTS);
 		}
