@@ -1,45 +1,92 @@
+/**
+ * Entity
+ * @author Ilja.Winokurow
+ */
 package org.geohunt.service.game.entities;
 
+/**
+ * Entity.
+ *
+ * @return Response
+ */
 public class Entity {
 
-	private String id;
+  /**
+   * id.
+   *
+   */
+  private String entityId;
 
-	public String getId() {
-		return id;
-	}
+  /**
+   * getter.
+   *
+   * @return id
+   */
+  public final String getId() {
+    return entityId;
+  }
 
-	public void setId(String id) {
-		this.id = id;
-	}
+  /**
+   * setter.
+   *
+   * @param newid
+   *          - id
+   */
+  public final void setId(final String newid) {
+    this.entityId = newid;
+  }
 
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		return result;
-	}
+  /**
+   * get hash code.
+   *
+   * @return hashcode
+   */
+  @Override
+  public final int hashCode() {
+    int hash = 0;
+    if (entityId != null) {
+      hash = entityId.hashCode();
+    }
+    return 31 * hash;
+  }
 
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		Entity other = (Entity) obj;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		return true;
-	}
+  /**
+   * equals.
+   *
+   * @return is equal
+   */
+  @Override
+  public final boolean equals(final Object obj) {
+    //// boolean returnValue = false;
+    //// if (this == obj) {
+    //// returnValue= true;
+    //// }
+    //// if (obj != null) {
+    //// if (getClass() == obj.getClass()) {
+    //// final Entity other = (Entity) obj;
+    //// if (entityId == null) {
+    //// if (other.entityId == null) {
+    //// return false;
+    //// }
+    //// } else if (!entityId.equals(other.entityId)) {
+    //// return false;
+    //// }
+    //// }
+    //
+    // }
+    //
+    // return returnValue;
+    return true;
+  }
 
-	@Override
-	public String toString() {
-		return "Entity [id=" + id + "]";
-	}
+  /**
+   * toString.
+   *
+   * @return string
+   */
+  @Override
+  public final String toString() {
+    return "Entity [id=" + entityId + "]";
+  }
 
 }

@@ -1,9 +1,22 @@
+/**
+ * GameServiceJSON
+ * @author Ilja.Winokurow
+ */
 package org.geohunt.service.game.rest;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.geohunt.service.game.dao.IGameDAO;
+import org.geohunt.service.game.entities.GameData;
+import org.geohunt.service.game.rest.exceptions.CustomError;
+import org.geohunt.service.rest.responce.ResponseCreator;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
 import java.util.Properties;
-import java.util.UUID;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.PUT;
@@ -12,62 +25,122 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import org.geohunt.service.game.dao.IGameDAO;
-import org.geohunt.service.game.entities.Game;
-import org.geohunt.service.game.rest.exceptions.CustomError;
-import org.geohunt.service.rest.responce.ResponseCreator;
-
+/**
+ * GameServiceJSON.
+ */
 public class GameServiceJSON implements IGameService {
 
-	// for retrieving request headers from context
-	// an injectable interface that provides access to HTTP header information.
-	@Context
-	private HttpHeaders requestHeaders;
+  /**
+   * logger.
+   */
+  private final static Logger LOGGER = LogManager.getLogger("GameServiceJSON");
 
-	// link to our dao object
-	private IGameDAO gameDAO;
+  /**
+   * for retrieving request headers from context an injectable interface that
+   * provides access to HTTP header information.
+   */
+  @Context
+  private HttpHeaders requestHeaders;
 
-	// for customersDAO bean property injection
-	public IGameDAO getGameDAO() {
-		return gameDAO;
-	}
+  /**
+   * link to our dao object.
+   */
+  private IGameDAO gameDAO;
 
-	public void setGameDAO(IGameDAO gameDAO) {
-		this.gameDAO = gameDAO;
-	}
+  /**
+   * For customersDAO bean property injection.
+   *
+   * @return customersDAO
+   */
+  public final IGameDAO getGameDAO() {
+    return gameDAO;
+  }
 
-	private String getHeaderVersion() {
-		return requestHeaders.getRequestHeader("version").get(0);
-	}
+  /**
+   * setGameDAO.
+   *
+   * @param newgameDAO
+   *          - customersDAO
+   */
+  public final void setGameDAO(final IGameDAO newgameDAO) {
+    this.gameDAO = newgameDAO;
+  }
 
-	// Create new game
-	@PUT
-	@Consumes(MediaType.APPLICATION_JSON)
-	public Response createGame(Game game) {
-		Properties prop = new Properties();
-		InputStream inputStream = getClass().getClassLoader().getResourceAsStream("main.properties");
+  /**
+   * getHeaderVersion.
+   *
+   * @return version
+   */
+  private String getHeaderVersion() {
+    final List<String> version = requestHeaders.getRequestHeader("version");
+    return version.get(0);
+  }
 
-		try {
-			prop.load(inputStream);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		if (!(getHeaderVersion().equals(prop.get("service.version")))) {
-			return ResponseCreator.error(5002, CustomError.OLD_VERSION_ERROR);
-		}
-		UUID uuid = gameDAO.createGame(game);
-		if (uuid != null) {
-			return ResponseCreator.success(getHeaderVersion(), String.format("{gameid:'%s'}", uuid));
-		} else {
-			return ResponseCreator.error(5003, CustomError.GAME_EXISTS);
-		}
-		// Customer updCustomer = customersDAO.updateCustomer(customer);
-		// if (updCustomer != null) {
-		// return ResponseCreator.success(getHeaderVersion(), updCustomer);
-		// } else {
-		// return ResponseCreator.error(500, Error.SERVER_ERROR.getCode(),
-		// getHeaderVersion());
-		// }
-	}
+  /**
+   * Create new game.
+   *
+   * @param game
+   *          data
+   * @return response
+   */
+  @Override
+  @PUT
+  @Consumes(MediaType.APPLICATION_JSON)
+  public final Response createGame(final GameData game) {
+    Response returnResponse;
+
+    final String version = getHeaderVersion();
+    final Properties prop = new Properties();
+    final InputStream inputStream = Thread.currentThread().getContextClassLoader()
+        .getResourceAsStream("main.properties");
+    try {
+      prop.load(inputStream);
+    } catch (final IOException e) {
+      LOGGER.error(e.getMessage());
+    }
+    if (!(version.equals(prop.get("service.version")))) {
+      return ResponseCreator.error(CustomError.OLD_VERSION_ERROR);
+
+    }
+
+    if (game.getName() == null || game.getName().isEmpty()) {
+      return ResponseCreator.error("Game name has no content.");
+    }
+    if (game.getPassword() == null || game.getPassword().isEmpty()) {
+      return ResponseCreator.error("Password has no content.");
+    }
+    if ((game.getUser() == null) || (game.getUser().isEmpty())) {
+      return ResponseCreator.error("User name has no content.");
+    }
+
+    switch (game.getTyp()) {
+    default:
+      final Calendar cal = Calendar.getInstance();
+      cal.setTime(new Date());
+      cal.add(Calendar.HOUR, 2);
+      game.setEndGameDate(cal.getTime());
+
+    }
+
+    String uuid;
+    if (game.getTyp().equals("0")) {
+      uuid = gameDAO.joinGame(game);
+    } else {
+      uuid = gameDAO.createGame(game);
+    }
+    if (uuid.contains("ERROR")) {
+      returnResponse = ResponseCreator.error(uuid);
+    } else {
+      returnResponse = ResponseCreator.success(getHeaderVersion(), String.format("{gameid:'%s'}", uuid));
+    }
+
+    // Customer updCustomer = customersDAO.updateCustomer(customer);
+    // if (updCustomer != null) {
+    // return ResponseCreator.success(getHeaderVersion(), updCustomer);
+    // } else {
+    // return ResponseCreator.error(500, Error.SERVER_ERROR.getCode(),
+    // getHeaderVersion());
+    // }
+    return returnResponse;
+  }
 }

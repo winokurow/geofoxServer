@@ -1,26 +1,77 @@
+/**
+ * ResponseCreator
+ * @author Ilja.Winokurow
+ */
 package org.geohunt.service.rest.responce;
-
-import javax.ws.rs.core.Response;
 
 import org.geohunt.service.game.rest.exceptions.CustomError;
 
-public class ResponseCreator {
-	public static Response error(int status, CustomError error) {
-		Response.ResponseBuilder response = Response.status(500);
-		response.header("errorcode", error.getCode());
-		response.header("error", error.getDescription());
-		response.entity("none");
-		return response.build();
-	}
+import javax.ws.rs.core.Response;
 
-	public static Response success(String version, Object object) {
-		Response.ResponseBuilder response = Response.ok();
-		response.header("version", version);
-		if (object != null) {
-			response.entity(object);
-		} else {
-			response.entity("none");
-		}
-		return response.build();
-	}
+/**
+ * ResponseCreator.
+ */
+public final class ResponseCreator {
+
+  /**
+   * Constructor.
+   */
+  private ResponseCreator() {
+    super();
+  }
+
+  /**
+   * error message.
+   *
+   * @param error
+   *          - error
+   *
+   * @return response
+   */
+  public static Response error(final CustomError error) {
+    final Response.ResponseBuilder response = Response.status(500);
+    response.header("errorcode", error.getCode());
+    response.header("error", error.getDescription());
+    response.entity("none");
+    return response.build();
+  }
+
+  /**
+   * error message.
+   *
+   * @param errorcode
+   *          - error code
+   * @param errortext
+   *          - error text
+   *
+   * @return response
+   */
+  public static Response error(final String errorText) {
+    final Response.ResponseBuilder response = Response.status(500);
+    response.header("errorcode", "6003");
+    response.header("error", errorText);
+    response.entity("none");
+    return response.build();
+  }
+
+  /**
+   * success message.
+   *
+   * @param version
+   *          - version
+   * @param object
+   *          - body
+   * @return response
+   */
+  public static Response success(final String version, final Object object) {
+    final Response.ResponseBuilder response = Response.ok();
+    response.header("version", version);
+    if (object == null) {
+      response.entity("none");
+    } else {
+
+      response.entity(object);
+    }
+    return response.build();
+  }
 }

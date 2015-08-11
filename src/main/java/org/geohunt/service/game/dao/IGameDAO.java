@@ -1,9 +1,33 @@
+/**
+ * Game DAO
+ * @author Ilja.Winokurow
+ */
 package org.geohunt.service.game.dao;
 
-import java.util.UUID;
+import org.geohunt.service.game.entities.GameData;
 
-import org.geohunt.service.game.entities.Game;
-
+/**
+ * IGameDAO.
+ */
 public interface IGameDAO {
-	UUID createGame(Game game);
+
+  /**
+   * createGame. insert data in DB
+   *
+   * @param game
+   *          - data
+   *
+   * @return session id
+   */
+  String createGame(GameData game);
+
+  /**
+   * joinGame. insert data in DB
+   *
+   * @param game
+   *          - data
+   *
+   * @return session id
+   */
+  String joinGame(GameData game);
 }
