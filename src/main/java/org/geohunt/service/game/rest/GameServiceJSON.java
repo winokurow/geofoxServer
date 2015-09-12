@@ -8,6 +8,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.geohunt.service.game.dao.IGameDAO;
 import org.geohunt.service.game.entities.GameData;
+import org.geohunt.service.game.entities.PositionData;
 import org.geohunt.service.game.rest.exceptions.CustomError;
 import org.geohunt.service.rest.responce.ResponseCreator;
 
@@ -19,6 +20,7 @@ import java.util.List;
 import java.util.Properties;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
@@ -73,7 +75,25 @@ public class GameServiceJSON implements IGameService {
    */
   private String getHeaderVersion() {
     final List<String> version = requestHeaders.getRequestHeader("version");
-    return version.get(0);
+    String returnValue = "xxx";
+    if (version != null) {
+      returnValue = version.get(0);
+    }
+    return returnValue;
+  }
+
+  /**
+   * getHeaderSessionId.
+   *
+   * @return Session Id
+   */
+  private String getHeaderSessionId() {
+    final List<String> version = requestHeaders.getRequestHeader("sessionid");
+    String returnValue = "xxx";
+    if (version != null) {
+      returnValue = version.get(0);
+    }
+    return returnValue;
   }
 
   /**
@@ -141,6 +161,52 @@ public class GameServiceJSON implements IGameService {
     // return ResponseCreator.error(500, Error.SERVER_ERROR.getCode(),
     // getHeaderVersion());
     // }
+    return returnResponse;
+  }
+
+  /**
+   * Create new game.
+   *
+   * @param game
+   *          data
+   * @return response
+   */
+  @Override
+  @POST
+  @Consumes(MediaType.APPLICATION_JSON)
+  public final Response writePosition(final PositionData game) {
+    Response returnResponse;
+
+    final String sessionId = getHeaderSessionId();
+    if (!(gameDAO.isSessionIdExist(sessionId))) {
+      return ResponseCreator.error(CustomError.NOT_AUTHORIZED);
+    }
+
+    final String version = getHeaderVersion();
+    final Properties prop = new Properties();
+    final InputStream inputStream = Thread.currentThread().getContextClassLoader()
+        .getResourceAsStream("main.properties");
+    try {
+      prop.load(inputStream);
+    } catch (final IOException e) {
+      LOGGER.error(e.getMessage());
+    }
+    if (!(version.equals(prop.get("service.version")))) {
+      return ResponseCreator.error(CustomError.OLD_VERSION_ERROR);
+    }
+
+    if (game.getCoordx() == 0.00 || game.getCoordy() == 0.00) {
+      return ResponseCreator.error("Coordinates ist corrupted.");
+    }
+
+    final String uuid = gameDAO.writePosition(game);
+
+    if (uuid.contains("ERROR")) {
+      returnResponse = ResponseCreator.error(uuid);
+    } else {
+      returnResponse = ResponseCreator.success(getHeaderVersion(), "Position is transfered successfully.");
+    }
+
     return returnResponse;
   }
 }

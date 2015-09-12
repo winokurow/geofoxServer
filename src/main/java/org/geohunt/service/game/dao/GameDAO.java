@@ -8,6 +8,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.geohunt.service.game.common.CommonUtils;
 import org.geohunt.service.game.entities.GameData;
+import org.geohunt.service.game.entities.PositionData;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
@@ -66,6 +67,11 @@ public class GameDAO implements IGameDAO {
    * Search for password.
    */
   private final String sql4 = "SELECT password FROM games WHERE name = ?";
+
+  /**
+   * Search for session id.
+   */
+  private final String sql5 = "SELECT id FROM members WHERE sessionid = ?";
 
   /**
    * logger.
@@ -374,6 +380,27 @@ public class GameDAO implements IGameDAO {
       }
     }
     return returnValue;
+  }
+
+  @Override
+  public String writePosition(final PositionData position) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public boolean isSessionIdExist(final String sessionId) {
+    if (sessionId == null || sessionId.isEmpty()) {
+      throw new IllegalArgumentException("Session Id is empty.");
+    }
+
+    int memberid = 0;
+    try {
+      memberid = templGame.queryForObject(sql5, new Object[] { sessionId }, Integer.class);
+    } catch (final EmptyResultDataAccessException e) {
+      LOGGER.error(e.getMessage());
+    }
+    return memberid != 0;
   }
 
 }
