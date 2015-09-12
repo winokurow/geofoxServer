@@ -38,6 +38,11 @@ public class GameDAO implements IGameDAO {
   private SimpleJdbcInsert insertGame;
 
   /**
+   * Insert position request.
+   */
+  private SimpleJdbcInsert insertPosition;
+
+  /**
    * Insert member request.
    */
   private SimpleJdbcInsert insertMember;
@@ -89,6 +94,7 @@ public class GameDAO implements IGameDAO {
     this.insertGame = new SimpleJdbcInsert(newdataSource).withTableName("games");
     this.insertMember = new SimpleJdbcInsert(newdataSource).withTableName("members");
     this.insertPerson = new SimpleJdbcInsert(newdataSource).withTableName("users");
+    this.insertPosition = new SimpleJdbcInsert(newdataSource).withTableName("position");
   }
 
   /**
@@ -253,6 +259,52 @@ public class GameDAO implements IGameDAO {
   }
 
   /**
+   * insertPosition.<br>
+   * Insert a record in the table 'coordinates'.
+   *
+   * @param coordx
+   *          - coordx
+   * @param coordy
+   *          - coordy
+   * @param accuracy
+   *          - accuracy
+   * @param speed
+   *          - speed
+   * @param altitude
+   *          - altitude
+   * @param memberid
+   *          - member id
+   * @param timestamp
+   *          - timestamp
+   *
+   * @return code
+   */
+  private void insertPosition(final double coordx, final double coordy, final double accuracy, final double speed,
+      final double altitude, final int memberid, final java.sql.Date timestamp) {
+
+    if ((coordx == 0.00) || (coordy == 0.00)) {
+      throw new IllegalArgumentException("Position is incorrect.");
+    }
+    if (memberid == 0) {
+      throw new IllegalArgumentException("Member has no content.");
+    }
+    if (timestamp == null) {
+      throw new IllegalArgumentException("Timestamp has no content.");
+    }
+
+    final int id = -1;
+    final Map<String, Object> parameters = new ConcurrentHashMap<String, Object>();
+    parameters.put("coordx", coordx);
+    parameters.put("coordy", coordy);
+    parameters.put("accuracy", accuracy);
+    parameters.put("speed", speed);
+    parameters.put("altitude", altitude);
+    parameters.put("memberid", memberid);
+    parameters.put("timestamp", timestamp);
+    insertPosition.execute(parameters);
+  }
+
+  /**
    * insertIntoMemberTable.
    *
    * Insert a record in the table 'members'.
@@ -383,13 +435,24 @@ public class GameDAO implements IGameDAO {
   }
 
   @Override
-  public String writePosition(final PositionData position) {
-    // TODO Auto-generated method stub
-    return null;
+  public String writePosition(final String sessionId, final PositionData position) {
+    String returnValue = "ERROR_ERR0";
+    if (position != null) {
+
+      final int memberid = getSessionId(sessionId);
+      if (memberid != 0) {
+        insertPosition(position.getCoordx(), position.getCoordy(), position.getAccuracy(), position.getSpeed(),
+            position.getAltitude(), memberid, new java.sql.Date(new Date().getTime()));
+        returnValue = "";
+      } else {
+        returnValue = "ERROR_ERR1";
+      }
+    }
+    return returnValue;
   }
 
   @Override
-  public boolean isSessionIdExist(final String sessionId) {
+  public int getSessionId(final String sessionId) {
     if (sessionId == null || sessionId.isEmpty()) {
       throw new IllegalArgumentException("Session Id is empty.");
     }
@@ -400,7 +463,7 @@ public class GameDAO implements IGameDAO {
     } catch (final EmptyResultDataAccessException e) {
       LOGGER.error(e.getMessage());
     }
-    return memberid != 0;
+    return memberid;
   }
 
 }

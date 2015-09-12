@@ -40,10 +40,10 @@ public interface IGameDAO {
    *
    * @return session id
    */
-  String writePosition(PositionData position);
+  String writePosition(final String sessionId, PositionData position);
 
   /**
-   * isSessionIdExist
+   * getSessionId
    *
    * Verify if Session Id exists.
    *
@@ -52,5 +52,5 @@ public interface IGameDAO {
    *
    * @return is exists
    */
-  boolean isSessionIdExist(String sessionId);
+  int getSessionId(String sessionId);
 }

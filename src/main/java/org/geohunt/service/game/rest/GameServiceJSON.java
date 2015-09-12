@@ -85,13 +85,15 @@ public class GameServiceJSON implements IGameService {
   /**
    * getHeaderSessionId.
    *
+   * Get header 'sessionid' content
+   *
    * @return Session Id
    */
   private String getHeaderSessionId() {
-    final List<String> version = requestHeaders.getRequestHeader("sessionid");
+    final List<String> sessionId = requestHeaders.getRequestHeader("sessionid");
     String returnValue = "xxx";
-    if (version != null) {
-      returnValue = version.get(0);
+    if (sessionId != null) {
+      returnValue = sessionId.get(0);
     }
     return returnValue;
   }
@@ -165,20 +167,20 @@ public class GameServiceJSON implements IGameService {
   }
 
   /**
-   * Create new game.
+   * writePosition.
    *
-   * @param game
-   *          data
+   * @param positiondata
+   *          position data
    * @return response
    */
   @Override
   @POST
   @Consumes(MediaType.APPLICATION_JSON)
-  public final Response writePosition(final PositionData game) {
+  public final Response writePosition(final PositionData positiondata) {
     Response returnResponse;
 
     final String sessionId = getHeaderSessionId();
-    if (!(gameDAO.isSessionIdExist(sessionId))) {
+    if (gameDAO.getSessionId(sessionId) == 0) {
       return ResponseCreator.error(CustomError.NOT_AUTHORIZED);
     }
 
@@ -195,11 +197,11 @@ public class GameServiceJSON implements IGameService {
       return ResponseCreator.error(CustomError.OLD_VERSION_ERROR);
     }
 
-    if (game.getCoordx() == 0.00 || game.getCoordy() == 0.00) {
+    if (positiondata.getCoordx() == 0.00 || positiondata.getCoordy() == 0.00) {
       return ResponseCreator.error("Coordinates ist corrupted.");
     }
 
-    final String uuid = gameDAO.writePosition(game);
+    final String uuid = gameDAO.writePosition(sessionId, positiondata);
 
     if (uuid.contains("ERROR")) {
       returnResponse = ResponseCreator.error(uuid);
