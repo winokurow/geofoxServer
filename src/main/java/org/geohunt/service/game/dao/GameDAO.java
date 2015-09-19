@@ -11,8 +11,11 @@ import org.geohunt.service.game.entities.GameData;
 import org.geohunt.service.game.entities.PositionData;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
@@ -79,6 +82,27 @@ public class GameDAO implements IGameDAO {
   private final String sql5 = "SELECT id FROM members WHERE sessionid = ?";
 
   /**
+   * Search for gameid.
+   */
+  private final String sql6 = "SELECT gameid FROM members WHERE id = ?";
+
+  /**
+   * Search for fox memberid.
+   */
+  private final String sql7 = "SELECT id FROM members WHERE gameid = ? AND typ = 1";
+
+  /**
+   * GET coordinates.
+   */
+  private final String sql8 = "SELECT coordx, coordy FROM position at1 WHERE memberid = ? AND "
+      + "timestamp = (SELECT MAX(timestamp) from position at2 where at1.id = at2.id)";
+
+  /**
+   * Add distance.
+   */
+  private final String sql9 = "update members  set distance = ? WHERE id = ?";
+
+  /**
    * logger.
    */
   private static final Logger LOGGER = LogManager.getLogger("GameDAO");
@@ -114,6 +138,31 @@ public class GameDAO implements IGameDAO {
     int gameid = 0;
     try {
       gameid = templGame.queryForObject(sql1, new Object[] { name }, Integer.class);
+    } catch (final EmptyResultDataAccessException e) {
+      LOGGER.error(e.getMessage());
+    }
+    return gameid;
+  }
+
+  /**
+   * searchForGameIdByMemberId.<br>
+   *
+   * Search for game ID by member id in DB<br>
+   *
+   * @param memberid
+   *          - member id
+   *
+   * @return game id
+   */
+  private int searchForGameId(final int memberid) {
+
+    if (memberid < 1) {
+      throw new IllegalArgumentException("Member id is incorrect.");
+    }
+
+    int gameid = 0;
+    try {
+      gameid = templGame.queryForObject(sql6, new Object[] { memberid }, Integer.class);
     } catch (final EmptyResultDataAccessException e) {
       LOGGER.error(e.getMessage());
     }
@@ -190,6 +239,64 @@ public class GameDAO implements IGameDAO {
       LOGGER.error(e.getMessage());
     }
     return members;
+  }
+
+  /**
+   * getFoxMemberId.
+   *
+   * Get fox memberid
+   *
+   * @param gameid
+   *          - game id
+   *
+   * @return member id
+   */
+  private int getFoxMemberId(final int gameid) {
+    if (gameid < 1) {
+      throw new IllegalArgumentException("Game id is incorrect");
+    }
+
+    int members = 0;
+    try {
+      members = templGame.queryForObject(sql7, new Object[] { gameid }, Integer.class);
+    } catch (final EmptyResultDataAccessException e) {
+      LOGGER.error(e.getMessage());
+    }
+    return members;
+  }
+
+  /**
+   * getLastCoordinates.
+   *
+   * Get last coordinates.
+   *
+   * @param memberid
+   *          - member id
+   *
+   * @return position
+   */
+  private PositionData getLastCoordinates(final int memberid) {
+    if (memberid < 1) {
+      throw new IllegalArgumentException("Member id is incorrect");
+    }
+
+    PositionData position = null;
+    try {
+      position = templGame.queryForObject(sql8, new Object[] { memberid }, new RowMapper<PositionData>() {
+        @Override
+        public PositionData mapRow(final ResultSet rs, final int rowNumber) throws SQLException {
+          final PositionData dept = new PositionData();
+          dept.setCoordx(rs.getDouble("coordx"));
+          dept.setCoordy(rs.getDouble("coordy"));
+          // set other properties
+
+          return dept;
+        }
+      });
+    } catch (final Exception e) {
+      LOGGER.error(e.getMessage());
+    }
+    return position;
   }
 
   /**
@@ -301,7 +408,8 @@ public class GameDAO implements IGameDAO {
     parameters.put("altitude", altitude);
     parameters.put("memberid", memberid);
     parameters.put("timestamp", timestamp);
-    insertPosition.execute(parameters);
+    final int i = insertPosition.execute(parameters);
+    LOGGER.info(i);
   }
 
   /**
@@ -439,20 +547,24 @@ public class GameDAO implements IGameDAO {
     String returnValue = "ERROR_ERR0";
     if (position != null) {
 
-      final int memberid = getSessionId(sessionId);
+      final int memberid = getMemberId(sessionId);
       if (memberid != 0) {
+        LOGGER.info(position.getCoordx());
         insertPosition(position.getCoordx(), position.getCoordy(), position.getAccuracy(), position.getSpeed(),
             position.getAltitude(), memberid, new java.sql.Date(new Date().getTime()));
         returnValue = "";
       } else {
+
         returnValue = "ERROR_ERR1";
       }
+    } else {
+      LOGGER.error("position data is empty");
     }
     return returnValue;
   }
 
   @Override
-  public int getSessionId(final String sessionId) {
+  public int getMemberId(final String sessionId) {
     if (sessionId == null || sessionId.isEmpty()) {
       throw new IllegalArgumentException("Session Id is empty.");
     }
@@ -460,10 +572,39 @@ public class GameDAO implements IGameDAO {
     int memberid = 0;
     try {
       memberid = templGame.queryForObject(sql5, new Object[] { sessionId }, Integer.class);
+      LOGGER.info(memberid);
     } catch (final EmptyResultDataAccessException e) {
       LOGGER.error(e.getMessage());
     }
     return memberid;
   }
 
+  @Override
+  public PositionData getFoxPosition(final String sessionId) {
+    PositionData returnValue = null;
+    int memberid = getMemberId(sessionId);
+    if (memberid != 0) {
+      final int gameid = searchForGameId(memberid);
+      if (gameid != 0) {
+        memberid = getFoxMemberId(gameid);
+        if (memberid != 0) {
+          returnValue = getLastCoordinates(memberid);
+        }
+      }
+    }
+    return returnValue;
+  }
+
+  @Override
+  public void setDistance(final String sessionId, final double distance) {
+    if (sessionId == null || sessionId.isEmpty()) {
+      throw new IllegalArgumentException("Session Id is empty.");
+    }
+    final int memberid = getMemberId(sessionId);
+    try {
+      templGame.update(sql9, distance, memberid);
+    } catch (final Exception e) {
+      LOGGER.error(e.getMessage());
+    }
+  }
 }

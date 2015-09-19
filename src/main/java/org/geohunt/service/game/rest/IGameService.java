@@ -19,7 +19,7 @@ public interface IGameService {
    *
    * @param game
    *          data
-   * @return responce
+   * @return response
    */
   Response createGame(GameData game);
 

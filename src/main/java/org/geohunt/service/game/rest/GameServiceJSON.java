@@ -14,6 +14,7 @@ import org.geohunt.service.rest.responce.ResponseCreator;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.DecimalFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -180,7 +181,10 @@ public class GameServiceJSON implements IGameService {
     Response returnResponse;
 
     final String sessionId = getHeaderSessionId();
-    if (gameDAO.getSessionId(sessionId) == 0) {
+    if (sessionId.equals("xxx")) {
+      return ResponseCreator.error("Structure of request is incorrect.");
+    }
+    if (gameDAO.getMemberId(sessionId) == 0) {
       return ResponseCreator.error(CustomError.NOT_AUTHORIZED);
     }
 
@@ -194,21 +198,46 @@ public class GameServiceJSON implements IGameService {
       LOGGER.error(e.getMessage());
     }
     if (!(version.equals(prop.get("service.version")))) {
+      LOGGER.error("old version");
       return ResponseCreator.error(CustomError.OLD_VERSION_ERROR);
     }
 
     if (positiondata.getCoordx() == 0.00 || positiondata.getCoordy() == 0.00) {
+      LOGGER.error("Coordinates ist corrupted.");
       return ResponseCreator.error("Coordinates ist corrupted.");
     }
 
     final String uuid = gameDAO.writePosition(sessionId, positiondata);
 
     if (uuid.contains("ERROR")) {
-      returnResponse = ResponseCreator.error(uuid);
-    } else {
-      returnResponse = ResponseCreator.success(getHeaderVersion(), "Position is transfered successfully.");
+      return ResponseCreator.error(uuid);
     }
 
+    final PositionData positiondatafox = gameDAO.getFoxPosition(sessionId);
+    final double distance = CalculationByDistance(positiondata.getCoordx(), positiondata.getCoordy(),
+        positiondatafox.getCoordx(), positiondatafox.getCoordy());
+    gameDAO.setDistance(sessionId, distance);
+    returnResponse = ResponseCreator.success(getHeaderVersion(), "Position is transfered successfully.");
+
     return returnResponse;
+  }
+
+  public double CalculationByDistance(final double lat1, final double lon1, final double lat2, final double lon2) {
+    final int Radius = 6371;// radius of earth in Km
+    final double dLat = Math.toRadians(lat2 - lat1);
+    final double dLon = Math.toRadians(lon2 - lon1);
+    final double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+        + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    final double c = 2 * Math.asin(Math.sqrt(a));
+    final double valueResult = Radius * c;
+    final double km = valueResult / 1;
+    final DecimalFormat newFormat = new DecimalFormat("####");
+    final int kmInDec = Integer.valueOf(newFormat.format(km));
+    final double meter = valueResult % 1000;
+    final int meterInDec = Integer.valueOf(newFormat.format(meter));
+    // Log.i("Radius Value", "" + valueResult + " KM " + kmInDec + " Meter " +
+    // meterInDec);
+
+    return Radius * c;
   }
 }

@@ -43,14 +43,39 @@ public interface IGameDAO {
   String writePosition(final String sessionId, PositionData position);
 
   /**
-   * getSessionId
+   * getFoxPosition.
+   *
+   * Read fox position.
+   *
+   * @param sessionId
+   *          - session id
+   *
+   *
+   * @return position - fox position
+   */
+  PositionData getFoxPosition(final String sessionId);
+
+  /**
+   * getMemberId
    *
    * Verify if Session Id exists.
    *
    * @param sessionId
    *          - session id
    *
-   * @return is exists
+   * @return member id
    */
-  int getSessionId(String sessionId);
+  int getMemberId(String sessionId);
+
+  /**
+   * setDistance
+   *
+   * Set distance.
+   *
+   * @param sessionId
+   *          - session id
+   * @param distance
+   *          - distance
+   */
+  void setDistance(String sessionId, double distance);
 }
