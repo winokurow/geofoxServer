@@ -4,8 +4,13 @@
  */
 package org.geohunt.service.game.dao;
 
+import org.geohunt.service.game.data.Status;
+import org.geohunt.service.game.data.MemberTyp;
 import org.geohunt.service.game.entities.GameData;
-import org.geohunt.service.game.entities.PositionData;
+import org.geohunt.service.game.entities.MemberData;
+
+import java.util.ArrayList;
+import java.util.Date;
 
 /**
  * IGameDAO.
@@ -35,12 +40,13 @@ public interface IGameDAO {
   /**
    * writePosition. insert position in DB
    *
-   * @param position
-   *          - data
-   *
+   * @param memberid
+   *          - member id
+   * @param data
+   *          to set
    * @return session id
    */
-  String writePosition(final String sessionId, PositionData position);
+  String writePosition(final int memberid, MemberData data);
 
   /**
    * getFoxPosition.
@@ -53,7 +59,32 @@ public interface IGameDAO {
    *
    * @return position - fox position
    */
-  PositionData getFoxPosition(final String sessionId);
+  MemberData getFoxPosition(final String sessionId);
+
+  /**
+   * getUsername.
+   *
+   * Read username.
+   *
+   * @param memberId
+   *          - member id
+   *
+   * @return username
+   */
+  String getUsername(final int memberId);
+
+  /**
+   * getHuntersPosition.
+   *
+   * Read hunters position.
+   *
+   * @param sessionId
+   *          - session id
+   *
+   *
+   * @return position - hunters position
+   */
+  ArrayList<MemberData> getHuntersPosition(final String sessionId);
 
   /**
    * getMemberId
@@ -68,14 +99,71 @@ public interface IGameDAO {
   int getMemberId(String sessionId);
 
   /**
-   * setDistance
+   * releaseMember
    *
-   * Set distance.
+   * Set release member.
    *
    * @param sessionId
    *          - session id
-   * @param distance
-   *          - distance
    */
-  void setDistance(String sessionId, double distance);
+  void releaseMember(String sessionId);
+
+  /**
+   * setGameStatus
+   *
+   * Set status.
+   *
+   * @param sessionId
+   *          - session id
+   * @param status
+   *          - status
+   */
+  void setGameStatus(String sessionId, int status);
+
+  /**
+   * getGameType
+   *
+   * Get game type.
+   *
+   * @param sessionId
+   *          - session id
+   *
+   * @return type - type
+   */
+  int getGameType(String sessionId);
+
+  /**
+   * getGameStatus
+   *
+   * Get status.
+   *
+   * @param sessionId
+   *          - session id
+   * @return status - status
+   */
+  Status getGameStatus(String sessionId);
+
+  /**
+   * getGameTimestamp
+   *
+   * Get timestamp.
+   *
+   * @param sessionId
+   *          - session id
+   * @return timestamp - timestamp
+   */
+  Date getGameTimestamp(String sessionId);
+
+  /**
+   * getMemberType
+   *
+   * Get member type.
+   *
+   * @param memberId
+   *          - member id
+   *
+   * @return member type
+   */
+  MemberTyp getMemberType(int memberId);
+
 }

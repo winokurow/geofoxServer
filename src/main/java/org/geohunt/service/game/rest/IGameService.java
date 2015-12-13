@@ -5,7 +5,7 @@
 package org.geohunt.service.game.rest;
 
 import org.geohunt.service.game.entities.GameData;
-import org.geohunt.service.game.entities.PositionData;
+import org.geohunt.service.game.entities.MemberData;
 
 import javax.ws.rs.core.Response;
 
@@ -28,7 +28,7 @@ public interface IGameService {
    *
    * @param position
    *          data
-   * @return responce
+   * @return response
    */
-  Response writePosition(PositionData game);
+  Response writePosition(MemberData game);
 }
