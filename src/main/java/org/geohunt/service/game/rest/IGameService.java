@@ -26,8 +26,8 @@ public interface IGameService {
   /**
    * Write a position.
    *
-   * @param position
-   *          data
+   * @param game
+   *          - data
    * @return response
    */
   Response writePosition(MemberData game);
