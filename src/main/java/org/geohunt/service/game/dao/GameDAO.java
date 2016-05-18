@@ -9,6 +9,8 @@ import org.apache.logging.log4j.Logger;
 import org.geohunt.service.game.common.CommonUtils;
 import org.geohunt.service.game.data.MemberTyp;
 import org.geohunt.service.game.data.Status;
+import org.geohunt.service.game.entities.Game;
+import org.geohunt.service.game.entities.GameConfig;
 import org.geohunt.service.game.entities.GameData;
 import org.geohunt.service.game.entities.MemberData;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -103,6 +105,11 @@ public class GameDAO implements IGameDAO {
   private final String sql7 = "SELECT id FROM members WHERE gameid = ? AND typ = 1";
 
   /**
+   * Search for all hunters.
+   */
+  private final String sqlSearchForAllHunters = "SELECT id FROM members WHERE gameid = ? AND typ = 2";
+
+  /**
    * Search for hunters memberid.
    */
   private final String sql71 = "SELECT id FROM members WHERE gameid = ? AND typ = 2 AND id != ?";
@@ -139,14 +146,14 @@ public class GameDAO implements IGameDAO {
   private final String sql12 = "update members set status = ? WHERE id = ?";
 
   /**
-   * Add member status.
-   */
-  private final String sql13 = "select gameend from games WHERE id = ?";
-
-  /**
    * Get username.
    */
   private final String sql14 = "select name from users, members WHERE users.id = members.userid AND members.id=?";
+
+  /**
+   * Get all game data.
+   */
+  private final String sqlSelectGameData = "SELECT id, typ, name, password, gamebegin, status FROM games WHERE id = ?";
 
   /**
    * logger.
@@ -216,7 +223,7 @@ public class GameDAO implements IGameDAO {
   }
 
   /**
-   * searchForUserName<br>
+   * searchForUserName.<br>
    *
    * Search for username by member id in DB<br>
    *
@@ -364,6 +371,30 @@ public class GameDAO implements IGameDAO {
   }
 
   /**
+   * getFoxMemberId.
+   *
+   * Get hunters memberid
+   *
+   * @param gameid
+   *          - game id
+   *
+   * @return members id
+   */
+  private List<Integer> getHunters(final int gameid) {
+    if (gameid < 1) {
+      throw new IllegalArgumentException("Game id is incorrect");
+    }
+
+    List<Integer> members = null;
+    try {
+      members = templGame.queryForList(sqlSearchForAllHunters, new Object[] { gameid }, Integer.class);
+    } catch (final Exception e) {
+      LOGGER.error(e.getMessage());
+    }
+    return members;
+  }
+
+  /**
    * getLastCoordinates.
    *
    * Get last coordinates.
@@ -446,12 +477,12 @@ public class GameDAO implements IGameDAO {
    *          - game password
    * @param status
    *          - game status
-   * @param gameend
-   *          - game End
+   * @param gamebegin
+   *          - game begin
    * @return game id
    */
-  private int insertGame(final String gameName, final int type, final String password, final int status,
-      final Date gameend) {
+  private int insertGame(final String gameName, final int type, final String password, final Status status,
+      final Date gamebegin) {
 
     if (gameName == null || gameName.isEmpty()) {
       throw new IllegalArgumentException("Game name has no content.");
@@ -459,7 +490,7 @@ public class GameDAO implements IGameDAO {
     if (password == null || password.isEmpty()) {
       throw new IllegalArgumentException("Password has no content.");
     }
-    if (gameend == null) {
+    if (gamebegin == null) {
       throw new IllegalArgumentException("Game end has no content.");
     }
 
@@ -468,8 +499,8 @@ public class GameDAO implements IGameDAO {
     parameters.put("name", gameName);
     parameters.put("typ", type);
     parameters.put("password", password);
-    parameters.put("status", status);
-    parameters.put("gameend", gameend);
+    parameters.put("status", status.toString());
+    parameters.put("gamebegin", gamebegin);
     insertGame.execute(parameters);
     id = searchForGameId(gameName);
     return id;
@@ -509,7 +540,6 @@ public class GameDAO implements IGameDAO {
       throw new IllegalArgumentException("Timestamp has no content.");
     }
 
-    final int id = -1;
     final Map<String, Object> parameters = new ConcurrentHashMap<String, Object>();
     parameters.put("latitude", latitude);
     parameters.put("longitude", longitude);
@@ -586,10 +616,10 @@ public class GameDAO implements IGameDAO {
           activeMembers = searchForActiveMember(userid);
         }
         if (activeMembers == 0) {
-          final String typ = game.getTyp().trim();
+          final String typ = game.getGametyp().trim();
           final String password = CommonUtils.getHash(game.getPassword());
-          gameid = insertGame(game.getName(), Integer.parseInt(typ), password, 1,
-              new java.sql.Date(game.getEndGameDate().getTime()));
+          gameid = insertGame(game.getName(), Integer.parseInt(typ), password, Status.AWAITINGFORHUNTER,
+              new java.sql.Date(game.getBeginGameTime().getTime()));
           final UUID idOne = UUID.randomUUID();
           insertMember(idOne, 1, userid, gameid);
           returnValue = idOne.toString();
@@ -612,6 +642,7 @@ public class GameDAO implements IGameDAO {
    */
   @Override
   public final String joinGame(final GameData game) {
+
     String returnValue = "ERROR_ERR0";
     if (game != null) {
 
@@ -619,25 +650,31 @@ public class GameDAO implements IGameDAO {
       final String passwordMust = searchForGamePassword(game.getName());
       final String password = CommonUtils.getHash(game.getPassword());
       if ((gameid != 0) && password.equals(passwordMust)) {
-        Integer userid = searchForUserId(game.getUser());
+        final List<Integer> hunters = getHunters(gameid);
+        final GameConfig gameConfig = new GameConfig(game.getGametyp());
+        if (hunters.size() < gameConfig.getHunterscount()) {
+          Integer userid = searchForUserId(game.getUser());
 
-        // Create a new user if user doesn't exist
-        int activeMembers = 0;
-        if (userid == 0) {
-          userid = insertUser(game.getUser());
-        } else {
-          activeMembers = searchForActiveMember(userid);
-        }
-        if (activeMembers == 0) {
+          // Create a new user if user doesn't exist
+          int activeMembers = 0;
+          if (userid == 0) {
+            userid = insertUser(game.getUser());
+          } else {
+            activeMembers = searchForActiveMember(userid);
+          }
+          if (activeMembers == 1) {
 
-          final UUID idOne = UUID.randomUUID();
-          insertMember(idOne, 2, userid, gameid);
-          returnValue = idOne.toString();
+            final UUID idOne = UUID.randomUUID();
+            insertMember(idOne, 2, userid, gameid);
+            returnValue = idOne.toString();
+          } else {
+            returnValue = "ERROR_ERR1";
+          }
         } else {
-          returnValue = "ERROR_ERR1";
+          returnValue = "ERROR_ERR3";
         }
       } else {
-        returnValue = "ERROR_ERR3";
+        returnValue = "ERROR_GAME_IS_FULL";
       }
     }
     return returnValue;
@@ -721,7 +758,7 @@ public class GameDAO implements IGameDAO {
           returnValue.setName(username);
           final int status = this.getMemberStatus(memberid);
           if (status == 1) {
-            setGameStatus(sessionId, 3);
+            setGameStatus(sessionId, Status.FOX_TIMEOUT);
           }
         }
       }
@@ -751,9 +788,10 @@ public class GameDAO implements IGameDAO {
 
             }
           }
-        }
-        if ((returnValue.size() == 0) && (membersid.size() > 0)) {
-          setGameStatus(sessionId, 4);
+
+          if ((returnValue.size() == 0) && (membersid.size() > 0)) {
+            setGameStatus(sessionId, Status.HUNTERS_TIMEOUT);
+          }
         }
       }
     }
@@ -773,7 +811,7 @@ public class GameDAO implements IGameDAO {
   }
 
   @Override
-  public void setGameStatus(final String sessionId, final int status) {
+  public void setGameStatus(final String sessionId, final Status status) {
     if (sessionId == null || sessionId.isEmpty()) {
       throw new IllegalArgumentException("Session Id is empty.");
     }
@@ -782,7 +820,7 @@ public class GameDAO implements IGameDAO {
       final int gameid = searchForGameId(memberid);
       if (gameid != 0) {
         try {
-          templGame.update(sql9, status, gameid);
+          templGame.update(sql9, status.toString(), gameid);
         } catch (final Exception e) {
           LOGGER.error(e.getMessage());
         }
@@ -824,23 +862,6 @@ public class GameDAO implements IGameDAO {
     return status;
   }
 
-  @Override
-  public Date getGameTimestamp(final String sessionId) {
-    Date timestamp = null;
-    if (sessionId == null || sessionId.isEmpty()) {
-      throw new IllegalArgumentException("Session Id is empty.");
-    }
-    final int memberid = getMemberId(sessionId);
-    if (memberid != 0) {
-      final int gameid = searchForGameId(memberid);
-      if (gameid != 0) {
-        timestamp = templGame.queryForObject(sql13, new Object[] { gameid }, Date.class);
-      }
-    }
-
-    return timestamp;
-  }
-
   public int getMemberStatus(final int memberId) {
     int status = -1;
     if (memberId != 0) {
@@ -861,8 +882,6 @@ public class GameDAO implements IGameDAO {
   }
 
   /**
-   * getMemberType
-   *
    * Get member type.
    *
    * @param memberId
@@ -879,5 +898,22 @@ public class GameDAO implements IGameDAO {
       LOGGER.error(e.getMessage());
     }
     return MemberTyp.valueOf(status);
+  }
+
+  @Override
+  public Game getGame(final String sessionId) {
+    Game game = new Game();
+    if (sessionId == null || sessionId.isEmpty()) {
+      throw new IllegalArgumentException("Session Id is empty.");
+    }
+    final int memberid = getMemberId(sessionId);
+    if (memberid != 0) {
+      final int gameid = searchForGameId(memberid);
+      if (gameid != 0) {
+        game = (Game) templGame.queryForObject(sqlSelectGameData, new Object[] { gameid }, new GameRowMapper());
+      }
+
+    }
+    return game;
   }
 }

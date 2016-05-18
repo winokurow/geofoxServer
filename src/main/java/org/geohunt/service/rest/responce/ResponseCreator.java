@@ -39,9 +39,7 @@ public final class ResponseCreator {
   /**
    * error message.
    *
-   * @param errorcode
-   *          - error code
-   * @param errortext
+   * @param errorText
    *          - error text
    *
    * @return response

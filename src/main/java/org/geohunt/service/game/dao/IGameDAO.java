@@ -4,13 +4,13 @@
  */
 package org.geohunt.service.game.dao;
 
-import org.geohunt.service.game.data.Status;
 import org.geohunt.service.game.data.MemberTyp;
+import org.geohunt.service.game.data.Status;
+import org.geohunt.service.game.entities.Game;
 import org.geohunt.service.game.entities.GameData;
 import org.geohunt.service.game.entities.MemberData;
 
 import java.util.ArrayList;
-import java.util.Date;
 
 /**
  * IGameDAO.
@@ -118,7 +118,7 @@ public interface IGameDAO {
    * @param status
    *          - status
    */
-  void setGameStatus(String sessionId, int status);
+  void setGameStatus(String sessionId, Status status);
 
   /**
    * getGameType
@@ -133,6 +133,16 @@ public interface IGameDAO {
   int getGameType(String sessionId);
 
   /**
+   * Get game data.
+   *
+   * @param sessionId
+   *          - session id
+   *
+   * @return game data
+   */
+  Game getGame(String sessionId);
+
+  /**
    * getGameStatus
    *
    * Get status.
@@ -142,17 +152,6 @@ public interface IGameDAO {
    * @return status - status
    */
   Status getGameStatus(String sessionId);
-
-  /**
-   * getGameTimestamp
-   *
-   * Get timestamp.
-   *
-   * @param sessionId
-   *          - session id
-   * @return timestamp - timestamp
-   */
-  Date getGameTimestamp(String sessionId);
 
   /**
    * getMemberType

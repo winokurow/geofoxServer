@@ -9,22 +9,22 @@ import org.apache.logging.log4j.Logger;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
+import org.geohunt.service.game.common.PropertyManager;
 import org.geohunt.service.game.dao.IGameDAO;
 import org.geohunt.service.game.data.MemberTyp;
 import org.geohunt.service.game.data.Status;
+import org.geohunt.service.game.entities.Game;
+import org.geohunt.service.game.entities.GameConfig;
 import org.geohunt.service.game.entities.GameData;
 import org.geohunt.service.game.entities.MemberData;
 import org.geohunt.service.game.rest.exceptions.CustomError;
 import org.geohunt.service.rest.responce.ResponseCreator;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
-import java.util.Properties;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -42,7 +42,7 @@ public class GameServiceJSON implements IGameService {
   /**
    * logger.
    */
-  private final static Logger LOGGER = LogManager.getLogger("GameServiceJSON");
+  private static final Logger LOGGER = LogManager.getLogger("GameServiceJSON");
 
   /**
    * for retrieving request headers from context an injectable interface that
@@ -55,6 +55,13 @@ public class GameServiceJSON implements IGameService {
    * link to our dao object.
    */
   private IGameDAO gameDAO;
+
+  /**
+   * Constructor.
+   */
+  public GameServiceJSON() {
+    super();
+  }
 
   /**
    * For customersDAO bean property injection.
@@ -117,17 +124,11 @@ public class GameServiceJSON implements IGameService {
   @Consumes(MediaType.APPLICATION_JSON)
   public final Response createGame(final GameData game) {
     Response returnResponse;
-
+    final GameConfig gameConfig = new GameConfig(game.getGametyp());
     final String version = getHeaderVersion();
-    final Properties prop = new Properties();
-    final InputStream inputStream = Thread.currentThread().getContextClassLoader()
-        .getResourceAsStream("main.properties");
-    try {
-      prop.load(inputStream);
-    } catch (final IOException e) {
-      LOGGER.error(e.getMessage());
-    }
-    if (!(version.equals(prop.get("service.version")))) {
+    final PropertyManager properties = PropertyManager.getInstance();
+    final String versionSoll = properties.getStringProperty("service.version");
+    if (!(version.equals(versionSoll))) {
       return ResponseCreator.error(CustomError.OLD_VERSION_ERROR);
 
     }
@@ -142,24 +143,28 @@ public class GameServiceJSON implements IGameService {
       return ResponseCreator.error("User name has no content.");
     }
 
-    switch (game.getTyp()) {
-    default:
-      final Calendar cal = Calendar.getInstance();
-      cal.setTime(new Date());
-      game.setEndGameDate(cal.getTime());
-    }
+    final Calendar cal = Calendar.getInstance();
+    cal.setTime(new Date());
+    game.setBeginGameTime(cal.getTime());
 
     String uuid;
-    if (game.getTyp().equals("0")) {
+    if (game.getGameExist().equals("1")) {
       uuid = gameDAO.joinGame(game);
     } else {
       uuid = gameDAO.createGame(game);
+      if (gameDAO.getHuntersPosition(uuid).size() == gameConfig.getHunterscount()) {
+        gameDAO.setGameStatus(uuid, Status.AWAITINGFORDISTANCE);
+      }
     }
     if (uuid.contains("ERROR")) {
       returnResponse = ResponseCreator.error(uuid);
     } else {
+
       returnResponse = ResponseCreator.success(getHeaderVersion(),
-          String.format("{gameid:'%s', serviceinterval:'30000', servicefirstrun:'1000', gamelength:'180'}", uuid));
+          String.format(
+              "{gameid:'%s', serviceinterval:'%s', servicefirstrun:'%s', gamelength:'%s', startdistance:'%s'}", uuid,
+              gameConfig.getServiceInterval(), gameConfig.getServicefirstrun(), gameConfig.getGamelength(),
+              gameConfig.getStartdistance()));
     }
 
     // Customer updCustomer = customersDAO.updateCustomer(customer);
@@ -196,15 +201,9 @@ public class GameServiceJSON implements IGameService {
     }
 
     final String version = getHeaderVersion();
-    final Properties prop = new Properties();
-    final InputStream inputStream = Thread.currentThread().getContextClassLoader()
-        .getResourceAsStream("main.properties");
-    try {
-      prop.load(inputStream);
-    } catch (final IOException e) {
-      LOGGER.error(e.getMessage());
-    }
-    if (!(version.equals(prop.get("service.version")))) {
+    final PropertyManager properties = PropertyManager.getInstance();
+    final String versionSoll = properties.getStringProperty("service.version");
+    if (!(version.equals(versionSoll))) {
       LOGGER.error("old version");
       returnResponse = ResponseCreator.error(CustomError.OLD_VERSION_ERROR);
     }
@@ -222,14 +221,30 @@ public class GameServiceJSON implements IGameService {
     }
 
     if (returnResponse == null) {
+      final Game game = gameDAO.getGame(sessionId);
       final int gameType = gameDAO.getGameType(sessionId);
+      final GameConfig gameConfig = new GameConfig(gameType);
       final MemberData positiondatafox = gameDAO.getFoxPosition(sessionId);
       final MemberTyp memberType = gameDAO.getMemberType(memberid);
+      final Status status = gameDAO.getGameStatus(sessionId);
       if (memberType.equals(MemberTyp.HUNTER)) {
         final double distance = calculationByDistance(positiondata.getLongitude(), positiondata.getLatitude(),
             positiondatafox.getLongitude(), positiondatafox.getLatitude());
-        if (distance < 50.0) {
-          gameDAO.setGameStatus(sessionId, 1);
+
+        if ((distance < gameConfig.getEnddistance()) && (status.equals(Status.RUNNING))) {
+          gameDAO.setGameStatus(sessionId, Status.FOX_IS_CATCHED);
+        }
+      } else {
+        boolean isDistance = true;
+        if (status.equals(Status.AWAITINGFORDISTANCE)) {
+          for (final MemberData hunter : gameDAO.getHuntersPosition(uuid)) {
+            final double distance = calculationByDistance(positiondata.getLongitude(), positiondata.getLatitude(),
+                hunter.getLongitude(), hunter.getLatitude());
+            isDistance = isDistance && (distance > gameConfig.getStartdistance());
+          }
+          if (isDistance) {
+            gameDAO.setGameStatus(sessionId, Status.RUNNING);
+          }
         }
       }
 
@@ -272,15 +287,18 @@ public class GameServiceJSON implements IGameService {
           list.put(subobj3);
         }
         obj.put("huntersposition", list);
+
+        // Verify if game end is reached
         final Calendar cal = Calendar.getInstance();
-        cal.setTime(gameDAO.getGameTimestamp(sessionId));
-        cal.add(Calendar.HOUR, 1);
+        cal.setTime(game.getGamebegin());
+        final int gameLength = gameConfig.getGamelength();
+        cal.add(Calendar.MINUTE, gameLength);
         if (cal.getTime().before(new Date())) {
-          gameDAO.setGameStatus(sessionId, 2);
+          gameDAO.setGameStatus(sessionId, Status.FOX_WINS);
         }
 
-        final Status status = gameDAO.getGameStatus(sessionId);
-        if (!(status.equals(Status.RUNNING))) {
+        final Status status1 = gameDAO.getGameStatus(sessionId);
+        if ((status1.equals(Status.FOX_IS_CATCHED)) || (status1.equals(Status.FOX_WINS))) {
           gameDAO.releaseMember(sessionId);
         }
         obj.put("gamestatus", status.toString());
@@ -296,7 +314,11 @@ public class GameServiceJSON implements IGameService {
     return returnResponse;
   }
 
-  public double calculationByDistance(final double lat1, final double lon1, final double lat2, final double lon2) {
+  /**
+   * calculationByDistance
+   */
+  public final double calculationByDistance(final double lat1, final double lon1, final double lat2,
+      final double lon2) {
     final int radius = 6371;// radius of earth in km
     final double dLat = Math.toRadians(lat2 - lat1);
     final double dLon = Math.toRadians(lon2 - lon1);

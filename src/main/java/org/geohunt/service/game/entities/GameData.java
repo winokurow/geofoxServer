@@ -15,9 +15,14 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class GameData {
 
   /**
+   * gameExist.
+   */
+  private String gameExist;
+
+  /**
    * Typ.
    */
-  private String typ;
+  private String gametyp;
 
   /**
    * Name.
@@ -36,23 +41,23 @@ public class GameData {
   private String user;
 
   /**
-   * date of end of the game.
+   * time of begin of the game.
    */
-  private Date endGameDate;
+  private Date beginGameTime;
 
   /**
    * @return the typ
    */
-  public final String getTyp() {
-    return typ;
+  public final String getGametyp() {
+    return gametyp;
   }
 
   /**
    * @param newtyp
    *          the typ to set
    */
-  public final void setTyp(final String newtyp) {
-    this.typ = newtyp;
+  public final void setGametyp(final String newtyp) {
+    this.gametyp = newtyp;
   }
 
   /**
@@ -103,16 +108,31 @@ public class GameData {
   /**
    * @return the endGameDate
    */
-  public Date getEndGameDate() {
-    return endGameDate;
+  public final Date getBeginGameTime() {
+    return beginGameTime;
   }
 
   /**
    * @param endGameDate
    *          the endGameDate to set
    */
-  public void setEndGameDate(final Date endGameDate) {
-    this.endGameDate = endGameDate;
+  public final void setBeginGameTime(final Date endGameDate) {
+    this.beginGameTime = endGameDate;
+  }
+
+  /**
+   * @return the gameExist
+   */
+  public String getGameExist() {
+    return gameExist;
+  }
+
+  /**
+   * @param gameExist
+   *          the gameExist to set
+   */
+  public void setGameExist(final String gameExist) {
+    this.gameExist = gameExist;
   }
 
 }
